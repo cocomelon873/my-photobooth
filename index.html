@@ -3,159 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Photobooth</title>
+    <title>My DIY Photobooth</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
-            --bg-color: #fce1d4; /* Warna peach macam dalam gambar kau */
+            --bg-color: #fce1d4; 
             --accent-color: #ff8c42;
         }
-
         body {
             margin: 0;
             font-family: 'Fredoka One', cursive;
             background-color: var(--bg-color);
-            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            color: #333;
         }
-
-        .screen {
-            display: none;
-            text-align: center;
-            width: 100%;
-            max-width: 900px;
-            animation: fadeIn 0.5s;
-        }
-
+        .screen { display: none; text-align: center; width: 100%; }
         .active { display: block; }
-
-        /* Design Main Screen */
-        assets/main-bg.png {
-            background: url('assets/main-bg.png') no-repeat center center;
-            background-size: cover;
-            height: 500px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            border: 5px solid #fff;
-            border-radius: 20px;
-        }
-
-        h1 { color: #fff; font-size: 4rem; text-shadow: 3px 3px var(--accent-color); }
-        
-        .btn-start {
+        .btn {
             padding: 15px 40px;
-            font-size: 1.5rem;
-            background: #fff;
-            color: var(--accent-color);
+            font-size: 1.2rem;
+            background: var(--accent-color);
+            color: white;
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            transition: 0.3s;
+            margin-top: 20px;
         }
-
-        /* Camera Box */
-        #camera-container {
+        #camera-box {
             width: 640px;
             height: 480px;
             background: #000;
             margin: 0 auto;
             position: relative;
             border: 10px solid #fff;
+            border-radius: 20px;
         }
-
-        video, canvas {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            left: 0;
-            top: 0;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        video, canvas { width: 100%; height: 100%; border-radius: 10px; }
+        #qrcode { display: flex; justify-content: center; margin-top: 20px; }
     </style>
 </head>
 <body>
 
     <div id="main-screen" class="screen active">
-        <div class="main-bg">
-            <h1>PHOTO BOOTH</h1>
-            <p style="color:white">Tap to start</p>
-            <button class="btn-start" onclick="nextScreen('frame-screen')">START</button>
-        </div>
+        <h1>PHOTO BOOTH</h1>
+        <button class="btn" onclick="startBooth()">START</button>
     </div>
 
-    <div id="frame-screen" class="screen">
-        <h2>Please Choose A Frame</h2>
-        <div style="display:flex; justify-content: space-around;">
-            <div onclick="startCamera('strip')">
-                <img src="assets/frame 1.png" width="150" alt="Strip">
-                <p>Strip</p>
-            </div>
-            <div onclick="startCamera('polaroid')">
-                <img src="assets/frame 2.png" width="150" alt="Polaroid">
-                <p>Polaroid</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="take-photo" class="screen">
-        <h2 id="timer">Ready?</h2>
-        <div id="camera-container">
+    <div id="camera-screen" class="screen">
+        <h2 id="timer">Sedia...</h2>
+        <div id="camera-box">
             <video id="webcam" autoplay playsinline></video>
             <canvas id="photo-canvas" style="display:none;"></canvas>
         </div>
     </div>
 
     <div id="done-screen" class="screen">
-        <h2>Done! Scan to Download</h2>
-        <div id="qrcode" style="display: flex; justify-content: center; margin: 20px;"></div>
-        <button class="btn-start" onclick="location.reload()">New Session</button>
+        <h2>Siap! Scan QR untuk Download</h2>
+        <div id="qrcode"></div>
+        <button class="btn" onclick="location.reload()">Ambil Lagi</button>
     </div>
 
     <script>
+        // --- GANTI MAKLUMAT KAU DI SINI ---
+        const CLOUD_NAME = "ddpimomew"; 
+        const UPLOAD_PRESET = "photobooth_preset";
+        // ---------------------------------
+
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('photo-canvas');
+        const timerText = document.getElementById('timer');
+
         function nextScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
 
-        async function startCamera(type) {
-            nextScreen('take-photo');
-            const video = document.getElementById('webcam');
-            
+        async function startBooth() {
+            nextScreen('camera-screen');
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 
                 // Countdown 3 saat
                 let count = 3;
-                const timerText = document.getElementById('timer');
                 let interval = setInterval(() => {
                     timerText.innerText = count;
                     if(count <= 0) {
                         clearInterval(interval);
+                        timerText.innerText = "SMILE! 📸";
                         takePicture();
                     }
                     count--;
                 }, 1000);
             } catch (err) {
-                alert("Kamera tak jumpa!");
+                alert("Kamera tidak dijumpai atau akses dihalang.");
             }
         }
 
-        function takePicture() {
-            // Logika ambil gambar akan letak sini
-            // Lepas ambil gambar, kita panggil fungsi upload Cloudinary
-            nextScreen('done-screen');
-            generateQR("https://yourlink.com/photo123");
-        }
+        async function takePicture() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/jpeg');
+            
+            // Berhenti kamera
+            video.srcObject.getTracks().forEach(track => track.stop());
 
-        function generateQR(link) {
-            new QRCode(document.getElementById("qrcode"), link);
+            // Upload ke Cloudinary
+            const formData = new FormData();
+            formData.append('file', imageData);
+            formData.append('upload_preset', UPLOAD_PRESET);
+
+            try {
+                timerText.innerText = "Tengah Upload...";
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if(data.secure_url) {
+                    nextScreen('done-screen');
+                    new QRCode(document.getElementById("qrcode"), data.secure_url);
+                } else {
+                    alert("Upload gagal. Check Cloud Name/Preset.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Ada error masa upload.");
+            }
         }
     </script>
 </body>
